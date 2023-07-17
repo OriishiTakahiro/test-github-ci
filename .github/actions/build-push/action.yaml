@@ -1,0 +1,33 @@
+inputs:
+  registory_url: 
+    description: "レジストリのURL"
+    required: true
+  app_name: 
+    description: "ビルドするアプリケーション名"
+    required: true
+  tags: 
+    description: "コンテナに付与するタグのリスト"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        TAG_STR=${{ inputs.tags }}
+        IFS=, TAG_LIST=(${TAG_STR})
+        FULL_TAGS=''
+        for TAG in ${TAG_LIST[@]}; do
+          FULL_TAGS="${{ inputs.registory_url }}/${{ inputs.app_name }}:$TAG,$FULL_TAGS"
+        done
+        echo "IMG_TAGS=$FULL_TAGS" >> $GITHUB_ENV
+
+    - uses: docker/build-push-action@v4
+      with:
+        push: true
+        tags: ${{ env.IMG_TAGS }}
+        target: ${{ env.APP_NAME }}
+        platforms: linux/arm64
+        file: Dockerfile
+        context: .
+
